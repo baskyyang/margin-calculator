@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>期货保证金计算器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #1a3c5e;
+    color: #fff;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .header h1 { font-size: 1.2rem; font-weight: 600; }
+
+  .card {
+    background: #fff;
+    margin: 12px 12px;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .form-label .unit {
+    font-size: 0.75rem;
+    color: #999;
+  }
+  .form-label .fixed-value {
+    font-size: 0.85rem;
+    color: #1a3c5e;
+    font-weight: 500;
+  }
+
+  select, input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fafafa;
+    color: #1a1a1a;
+  }
+  select:focus, input:focus {
+    outline: none;
+    border-color: #1a3c5e;
+    background: #fff;
+  }
+  input[type="number"] {
+    text-align: right;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  .result {
+    background: linear-gradient(135deg, #1a3c5e 0%, #2a5a8a 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 20px 16px;
+    margin: 12px;
+    text-align: center;
+  }
+  .result-label {
+    font-size: 0.8rem;
+    opacity: 0.85;
+    margin-bottom: 8px;
+  }
+  .result-amount {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .result-formula {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    font-family: "SF Mono", "Menlo", monospace;
+  }
+
+  .btn-copy {
+    display: block;
+    width: calc(100% - 24px);
+    margin: 0 12px 12px;
+    padding: 14px;
+    background: #fff;
+    border: 2px solid #1a3c5e;
+    border-radius: 10px;
+    color: #1a3c5e;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-copy:active {
+    background: #1a3c5e;
+    color: #fff;
+  }
+  .btn-copy.copied {
+    background: #27ae60;
+    border-color: #27ae60;
+    color: #fff;
+  }
+
+  .note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #bbb;
+    padding: 16px 12px 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>期货保证金计算器</h1>
+</div>
+
+<div class="card">
+  <div class="card-title">合约信息</div>
+
+  <div class="form-group">
+    <label class="form-label">品种</label>
+    <select id="productSelect"></select>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">
+      交易所
+      <span class="fixed-value" id="exchangeDisplay">—</span>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">
+      合约价格
+      <span class="unit">元</span>
+    </label>
+    <input type="number" id="priceInput" step="0.01" min="0">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">
+      合约乘数
+      <span class="fixed-value" id="multiplierDisplay">—</span>
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">手数</label>
+    <input type="number" id="lotsInput" value="1" min="1" max="999">
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">
+      保证金比例
+      <span class="unit">%</span>
+    </label>
+    <input type="number" id="marginRateInput" step="0.1" min="0" max="100">
+  </div>
+</div>
+
+<div class="result">
+  <div class="result-label">保证金</div>
+  <div class="result-amount" id="resultAmount">—</div>
+  <div class="result-formula" id="resultFormula"></div>
+</div>
+
+<button class="btn-copy" id="btnCopy" onclick="copyResult()">复制结果</button>
+
+<div class="note">
+  结果仅供参考，实际保证金以期货公司通知为准
+</div>
+
+<script>
+const PRODUCTS = [
+  { code: 'RB',  name: '螺纹钢',   exchange: '上海期货交易所', multiplier: 10,   defaultPrice: 3500, marginRate: 10 },
+  { code: 'HC',  name: '热卷',     exchange: '上海期货交易所', multiplier: 10,   defaultPrice: 3600, marginRate: 10 },
+  { code: 'CU',  name: '沪铜',     exchange: '上海期货交易所', multiplier: 5,    defaultPrice: 68000, marginRate: 12 },
+  { code: 'AU',  name: '沪金',     exchange: '上海期货交易所', multiplier: 1000, defaultPrice: 500, marginRate: 8 },
+  { code: 'AG',  name: '沪银',     exchange: '上海期货交易所', multiplier: 15,   defaultPrice: 5500, marginRate: 10 },
+  { code: 'I',   name: '铁矿石',   exchange: '大连商品交易所', multiplier: 100,  defaultPrice: 800, marginRate: 15 },
+  { code: 'M',   name: '豆粕',     exchange: '大连商品交易所', multiplier: 10,   defaultPrice: 3200, marginRate: 10 },
+  { code: 'P',   name: '棕榈油',   exchange: '大连商品交易所', multiplier: 10,   defaultPrice: 7800, marginRate: 12 },
+  { code: 'TA',  name: 'PTA',      exchange: '郑州商品交易所', multiplier: 5,    defaultPrice: 5800, marginRate: 7 },
+  { code: 'MA',  name: '甲醇',     exchange: '郑州商品交易所', multiplier: 10,   defaultPrice: 2500, marginRate: 10 },
+  { code: 'SA',  name: '纯碱',     exchange: '郑州商品交易所', multiplier: 20,   defaultPrice: 1800, marginRate: 12 },
+  { code: 'IF',  name: '沪深300股指', exchange: '中国金融期货交易所', multiplier: 200, defaultPrice: 4000, marginRate: 12 },
+];
+
+const exchangeGroups = {};
+PRODUCTS.forEach(p => {
+  if (!exchangeGroups[p.exchange]) exchangeGroups[p.exchange] = [];
+  exchangeGroups[p.exchange].push(p);
+});
+
+const select = document.getElementById('productSelect');
+const exchangeDisplay = document.getElementById('exchangeDisplay');
+const multiplierDisplay = document.getElementById('multiplierDisplay');
+const priceInput = document.getElementById('priceInput');
+const lotsInput = document.getElementById('lotsInput');
+const marginRateInput = document.getElementById('marginRateInput');
+const resultAmount = document.getElementById('resultAmount');
+const resultFormula = document.getElementById('resultFormula');
+
+// Build select with optgroups
+for (const [exchange, products] of Object.entries(exchangeGroups)) {
+  const group = document.createElement('optgroup');
+  group.label = exchange;
+  products.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.code;
+    opt.textContent = `${p.name} ${p.code}`;
+    group.appendChild(opt);
+  });
+  select.appendChild(group);
+}
+
+function updateDisplay(product) {
+  exchangeDisplay.textContent = product.exchange;
+  multiplierDisplay.textContent = product.multiplier.toLocaleString();
+  priceInput.value = product.defaultPrice;
+  marginRateInput.value = product.marginRate;
+}
+
+function calc() {
+  const product = PRODUCTS.find(p => p.code === select.value);
+  if (!product) return;
+  const price = parseFloat(priceInput.value) || 0;
+  const lots = parseInt(lotsInput.value) || 0;
+  const rate = parseFloat(marginRateInput.value) || 0;
+  const amount = price * product.multiplier * lots * (rate / 100);
+
+  if (amount === 0 && lots === 0) {
+    resultAmount.textContent = '—';
+    resultFormula.textContent = '';
+    return;
+  }
+
+  resultAmount.textContent = amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' 元';
+  resultFormula.textContent = `${price.toLocaleString()} × ${product.multiplier.toLocaleString()} × ${lots} × ${rate}%`;
+}
+
+// Event listeners
+select.addEventListener('change', () => {
+  const product = PRODUCTS.find(p => p.code === select.value);
+  if (product) {
+    updateDisplay(product);
+    calc();
+  }
+});
+priceInput.addEventListener('input', calc);
+lotsInput.addEventListener('input', calc);
+marginRateInput.addEventListener('input', calc);
+
+// Init
+updateDisplay(PRODUCTS[0]);
+calc();
+
+function copyResult() {
+  const product = PRODUCTS.find(p => p.code === select.value);
+  const amount = resultAmount.textContent;
+  const formula = resultFormula.textContent;
+
+  const text = `【期货保证金计算】
+品种：${product.name}（${product.code}）
+交易所：${product.exchange}
+合约价格：${parseFloat(priceInput.value).toLocaleString()} 元
+合约乘数：${product.multiplier.toLocaleString()}
+手数：${lotsInput.value}
+保证金比例：${marginRateInput.value}%
+保证金：${amount}`;
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btnCopy');
+      btn.textContent = '已复制';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '复制结果';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  }
+}
+</script>
+
+</body>
+</html>
