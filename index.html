@@ -80,6 +80,18 @@
     font-size: 1.1rem;
     font-weight: 500;
   }
+  #productSearch {
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  #productSelect {
+    width: 100%;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+  #productSelect option {
+    padding: 6px 8px;
+  }
 
   .result {
     background: linear-gradient(135deg, #1a3c5e 0%, #2a5a8a 100%);
@@ -148,6 +160,7 @@
 
   <div class="form-group">
     <label class="form-label">品种</label>
+    <input type="text" id="productSearch" placeholder="输入代码或名称筛选..." autocomplete="off">
     <select id="productSelect"></select>
   </div>
 
@@ -161,7 +174,7 @@
   <div class="form-group">
     <label class="form-label">
       合约价格
-      <span class="unit">元</span>
+      <span class="unit" id="priceUnit">元/吨</span>
     </label>
     <input type="number" id="priceInput" step="0.01" min="0">
   </div>
@@ -208,8 +221,8 @@ const PRODUCTS = [
   { code: 'PB', name: '铅',         exchange: '上海期货交易所', multiplier: 5,     defaultPrice: 18000, marginRate: 12 },
   { code: 'NI', name: '镍',         exchange: '上海期货交易所', multiplier: 1,     defaultPrice: 130000, marginRate: 15 },
   { code: 'SN', name: '锡',         exchange: '上海期货交易所', multiplier: 1,     defaultPrice: 280000, marginRate: 15 },
-  { code: 'AU', name: '黄金',       exchange: '上海期货交易所', multiplier: 1000,  defaultPrice: 750, marginRate: 8 },
-  { code: 'AG', name: '白银',       exchange: '上海期货交易所', multiplier: 15,    defaultPrice: 8200, marginRate: 10 },
+  { code: 'AU', name: '黄金',       exchange: '上海期货交易所', multiplier: 1000,  defaultPrice: 750, marginRate: 8,  unit: '元/克' },
+  { code: 'AG', name: '白银',       exchange: '上海期货交易所', multiplier: 15,    defaultPrice: 8200, marginRate: 10, unit: '元/千克' },
   { code: 'RB', name: '螺纹钢',     exchange: '上海期货交易所', multiplier: 10,    defaultPrice: 3500, marginRate: 10 },
   { code: 'WR', name: '线材',       exchange: '上海期货交易所', multiplier: 10,    defaultPrice: 3800, marginRate: 10 },
   { code: 'HC', name: '热轧卷板',   exchange: '上海期货交易所', multiplier: 10,    defaultPrice: 3600, marginRate: 10 },
@@ -230,9 +243,9 @@ const PRODUCTS = [
   { code: 'M',  name: '豆粕',       exchange: '大连商品交易所', multiplier: 10,    defaultPrice: 3200, marginRate: 10 },
   { code: 'Y',  name: '大豆原油',   exchange: '大连商品交易所', multiplier: 10,    defaultPrice: 8000, marginRate: 10 },
   { code: 'P',  name: '棕榈油',     exchange: '大连商品交易所', multiplier: 10,    defaultPrice: 7800, marginRate: 12 },
-  { code: 'FB', name: '纤维板',     exchange: '大连商品交易所', multiplier: 10,    defaultPrice: 1300, marginRate: 10 },
-  { code: 'BB', name: '细木工板',   exchange: '大连商品交易所', multiplier: 500,   defaultPrice: 200, marginRate: 10 },
-  { code: 'JD', name: '鲜鸡蛋',     exchange: '大连商品交易所', multiplier: 5,     defaultPrice: 3800, marginRate: 10 },
+  { code: 'FB', name: '纤维板',     exchange: '大连商品交易所', multiplier: 10,    defaultPrice: 1300, marginRate: 10, unit: '元/立方米' },
+  { code: 'BB', name: '细木工板',   exchange: '大连商品交易所', multiplier: 500,   defaultPrice: 200, marginRate: 10, unit: '元/张' },
+  { code: 'JD', name: '鲜鸡蛋',     exchange: '大连商品交易所', multiplier: 10,    defaultPrice: 3800, marginRate: 10, unit: '元/500千克' },
   { code: 'L',  name: '聚乙烯',     exchange: '大连商品交易所', multiplier: 5,     defaultPrice: 8200, marginRate: 10 },
   { code: 'V',  name: '聚氯乙烯',   exchange: '大连商品交易所', multiplier: 5,     defaultPrice: 6000, marginRate: 10 },
   { code: 'PP', name: '聚丙烯',     exchange: '大连商品交易所', multiplier: 5,     defaultPrice: 7500, marginRate: 10 },
@@ -244,7 +257,7 @@ const PRODUCTS = [
   { code: 'EB', name: '苯乙烯',     exchange: '大连商品交易所', multiplier: 5,     defaultPrice: 8500, marginRate: 12 },
   { code: 'PG', name: '液化石油气', exchange: '大连商品交易所', multiplier: 20,    defaultPrice: 4800, marginRate: 12 },
   { code: 'LH', name: '生猪',       exchange: '大连商品交易所', multiplier: 16,    defaultPrice: 15000, marginRate: 12 },
-  { code: 'LG', name: '原木',       exchange: '大连商品交易所', multiplier: 90,    defaultPrice: 900, marginRate: 10 },
+  { code: 'LG', name: '原木',       exchange: '大连商品交易所', multiplier: 90,    defaultPrice: 900, marginRate: 10, unit: '元/立方米' },
   { code: 'BZ', name: '纯苯',       exchange: '大连商品交易所', multiplier: 30,    defaultPrice: 7500, marginRate: 12 },
   // 郑州商品交易所
   { code: 'WH', name: '强麦',       exchange: '郑州商品交易所', multiplier: 20,    defaultPrice: 2800, marginRate: 10 },
@@ -275,26 +288,26 @@ const PRODUCTS = [
   { code: 'PR', name: '瓶片',       exchange: '郑州商品交易所', multiplier: 15,    defaultPrice: 6500, marginRate: 12 },
   { code: 'PL', name: '丙烯',       exchange: '郑州商品交易所', multiplier: 20,    defaultPrice: 7500, marginRate: 12 },
   // 上海国际能源交易中心
-  { code: 'SC', name: '中质含硫原油', exchange: '上海国际能源交易中心', multiplier: 1000, defaultPrice: 550, marginRate: 15 },
+  { code: 'SC', name: '中质含硫原油', exchange: '上海国际能源交易中心', multiplier: 1000, defaultPrice: 550, marginRate: 15, unit: '元/桶' },
   { code: 'NR', name: '20号胶',     exchange: '上海国际能源交易中心', multiplier: 10,    defaultPrice: 12000, marginRate: 12 },
   { code: 'LU', name: '低硫燃料油', exchange: '上海国际能源交易中心', multiplier: 10,    defaultPrice: 4000, marginRate: 12 },
   { code: 'BC', name: '国际铜',     exchange: '上海国际能源交易中心', multiplier: 5,     defaultPrice: 70000, marginRate: 12 },
-  { code: 'EC', name: '集运指数(欧线)', exchange: '上海国际能源交易中心', multiplier: 50, defaultPrice: 1800, marginRate: 15 },
+  { code: 'EC', name: '集运指数(欧线)', exchange: '上海国际能源交易中心', multiplier: 50, defaultPrice: 1800, marginRate: 15, unit: '指数点' },
   // 中国金融期货交易所
-  { code: 'IF', name: '沪深300股指',  exchange: '中国金融期货交易所', multiplier: 300, defaultPrice: 4000, marginRate: 12 },
-  { code: 'IH', name: '上证50股指',   exchange: '中国金融期货交易所', multiplier: 300, defaultPrice: 2800, marginRate: 12 },
-  { code: 'IC', name: '中证500股指',  exchange: '中国金融期货交易所', multiplier: 200, defaultPrice: 5500, marginRate: 12 },
-  { code: 'IM', name: '中证1000股指', exchange: '中国金融期货交易所', multiplier: 200, defaultPrice: 6000, marginRate: 12 },
-  { code: 'TS', name: '2年期国债',    exchange: '中国金融期货交易所', multiplier: 20000, defaultPrice: 101, marginRate: 1 },
-  { code: 'TF', name: '5年期国债',    exchange: '中国金融期货交易所', multiplier: 10000, defaultPrice: 102, marginRate: 1.2 },
-  { code: 'T',  name: '10年期国债',   exchange: '中国金融期货交易所', multiplier: 10000, defaultPrice: 103, marginRate: 2 },
-  { code: 'TL', name: '30年期国债',   exchange: '中国金融期货交易所', multiplier: 10000, defaultPrice: 105, marginRate: 3 },
+  { code: 'IF', name: '沪深300股指',  exchange: '中国金融期货交易所', multiplier: 300, defaultPrice: 4000, marginRate: 12, unit: '指数点' },
+  { code: 'IH', name: '上证50股指',   exchange: '中国金融期货交易所', multiplier: 300, defaultPrice: 2800, marginRate: 12, unit: '指数点' },
+  { code: 'IC', name: '中证500股指',  exchange: '中国金融期货交易所', multiplier: 200, defaultPrice: 5500, marginRate: 12, unit: '指数点' },
+  { code: 'IM', name: '中证1000股指', exchange: '中国金融期货交易所', multiplier: 200, defaultPrice: 6000, marginRate: 12, unit: '指数点' },
+  { code: 'TS', name: '2年期国债',    exchange: '中国金融期货交易所', multiplier: 20000, defaultPrice: 101, marginRate: 1, unit: '百元净价' },
+  { code: 'TF', name: '5年期国债',    exchange: '中国金融期货交易所', multiplier: 10000, defaultPrice: 102, marginRate: 1.2, unit: '百元净价' },
+  { code: 'T',  name: '10年期国债',   exchange: '中国金融期货交易所', multiplier: 10000, defaultPrice: 103, marginRate: 2, unit: '百元净价' },
+  { code: 'TL', name: '30年期国债',   exchange: '中国金融期货交易所', multiplier: 10000, defaultPrice: 105, marginRate: 3, unit: '百元净价' },
   // 广州期货交易所
   { code: 'SI', name: '工业硅',     exchange: '广州期货交易所', multiplier: 5,     defaultPrice: 12000, marginRate: 12 },
   { code: 'LC', name: '碳酸锂',     exchange: '广州期货交易所', multiplier: 1,     defaultPrice: 85000, marginRate: 15 },
   { code: 'PS', name: '多晶硅',     exchange: '广州期货交易所', multiplier: 3,     defaultPrice: 45000, marginRate: 15 },
-  { code: 'PD', name: '钯',         exchange: '广州期货交易所', multiplier: 1000,  defaultPrice: 280, marginRate: 10 },
-  { code: 'PT', name: '铂',         exchange: '广州期货交易所', multiplier: 1000,  defaultPrice: 240, marginRate: 10 },
+  { code: 'PD', name: '钯',         exchange: '广州期货交易所', multiplier: 1000,  defaultPrice: 280, marginRate: 10, unit: '元/克' },
+  { code: 'PT', name: '铂',         exchange: '广州期货交易所', multiplier: 1000,  defaultPrice: 240, marginRate: 10, unit: '元/克' },
 ];
 
 const exchangeGroups = {};
@@ -307,28 +320,46 @@ const select = document.getElementById('productSelect');
 const exchangeDisplay = document.getElementById('exchangeDisplay');
 const multiplierDisplay = document.getElementById('multiplierDisplay');
 const priceInput = document.getElementById('priceInput');
+const priceUnit = document.getElementById('priceUnit');
 const lotsInput = document.getElementById('lotsInput');
 const marginRateInput = document.getElementById('marginRateInput');
 const resultAmount = document.getElementById('resultAmount');
 const resultFormula = document.getElementById('resultFormula');
+const productSearch = document.getElementById('productSearch');
 
-// Build select with optgroups
-for (const [exchange, products] of Object.entries(exchangeGroups)) {
-  const group = document.createElement('optgroup');
-  group.label = exchange;
-  products.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.code;
-    opt.textContent = `${p.name} ${p.code}`;
-    group.appendChild(opt);
-  });
-  select.appendChild(group);
+// Build select with optgroups, optionally filtered
+function buildSelect(filter) {
+  const prev = select.value;
+  select.innerHTML = '';
+  const q = (filter || '').toLowerCase().trim();
+  for (const [exchange, products] of Object.entries(exchangeGroups)) {
+    const filtered = q ? products.filter(p =>
+      p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
+    ) : products;
+    if (filtered.length === 0) continue;
+    const group = document.createElement('optgroup');
+    group.label = exchange;
+    filtered.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.code;
+      opt.textContent = `${p.name} ${p.code}`;
+      if (p.code === prev) opt.selected = true;
+      group.appendChild(opt);
+    });
+    select.appendChild(group);
+  }
 }
+buildSelect();
+
+productSearch.addEventListener('input', () => {
+  buildSelect(productSearch.value);
+});
 
 function updateDisplay(product) {
   exchangeDisplay.textContent = product.exchange;
   multiplierDisplay.textContent = product.multiplier.toLocaleString();
   priceInput.value = product.defaultPrice;
+  priceUnit.textContent = product.unit || '元/吨';
   marginRateInput.value = product.marginRate;
 }
 
@@ -374,7 +405,7 @@ function copyResult() {
   const text = `【期货保证金计算】
 品种：${product.name}（${product.code}）
 交易所：${product.exchange}
-合约价格：${parseFloat(priceInput.value).toLocaleString()} 元
+合约价格：${parseFloat(priceInput.value).toLocaleString()} ${product.unit || '元/吨'}
 合约乘数：${product.multiplier.toLocaleString()}
 手数：${lotsInput.value}
 保证金比例：${marginRateInput.value}%
